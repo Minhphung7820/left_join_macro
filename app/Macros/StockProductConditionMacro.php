@@ -3,7 +3,6 @@
 namespace App\Module\Warehouse\Macros;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 Builder::macro('leftJoinStockProductsCondition', function () {
   $this->leftJoin('stock_products', function ($join) {

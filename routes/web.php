@@ -15,13 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    $data = Bill::leftJoin('bill_items', function ($join) {
-        $join->on('bill_items.bill_id', '=', 'bills.id')
-            ->where('bill_items.type', 'paid')
-            ->whereNotIn('bill_items.id', [2, 4]);
-    })
-        ->whereNotNull('bill_items.type')
-        ->get();
+    $data = Bill::leftJoinItemsBill()->get();
 
     return response()->json($data);
 });
