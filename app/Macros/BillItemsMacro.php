@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Eloquent\Builder;
@@ -12,5 +11,3 @@ Builder::macro('leftJoinItemsBill', function () {
     ->whereNotNull('bill_items.type');
   return $this;
 });
-
-?>
