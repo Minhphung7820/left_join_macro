@@ -19,8 +19,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     //
-    $sqlLatestPriceQuote = 'SELECT * FROM bills WHERE type = "price_quote" ORDER BY created_at DESC LIMIT 1';
-    $sqlLatestSell = 'SELECT * FROM bills WHERE type = "sell" AND status = "approve" ORDER BY created_at DESC LIMIT 1';
+    $contact_id = 700;
+    $sqlLatestPriceQuote = 'SELECT * FROM bills WHERE contact_id = ' . $contact_id . ' AND type = "price_quote" ORDER BY created_at DESC LIMIT 1';
+    $sqlLatestSell = 'SELECT * FROM bills WHERE contact_id = ' . $contact_id . ' AND type = "sell" AND status = "approve" ORDER BY created_at DESC LIMIT 1';
 
     $lLatestPriceQuote = DB::select($sqlLatestPriceQuote);
     $latestSell = DB::select($sqlLatestSell);
