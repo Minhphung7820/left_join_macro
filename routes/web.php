@@ -31,6 +31,10 @@ Route::get('/', function () {
         $priceQuoteTime = Carbon::parse($latestPriceQuoteCreatedAt);
         $sellTime = Carbon::parse($latestSellCreatedAt);
         $sqlConditionGetLatest = $priceQuoteTime->greaterThan($sellTime) ? $sqlLatestPriceQuote : $sqlLatestSell;
+    } elseif (empty($lLatestPriceQuote) && !empty($latestSell)) {
+        $sqlConditionGetLatest = $sqlLatestSell;
+    } elseif (!empty($lLatestPriceQuote) && empty($latestSell)) {
+        $sqlConditionGetLatest = $sqlLatestPriceQuote;
     }
     $arrayLeftJoinLatestCondition = [
         DB::raw('(' . $sqlConditionGetLatest . ') as tbNewOrder'),
