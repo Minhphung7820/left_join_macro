@@ -36,6 +36,8 @@ Route::get('/', function () {
         $sqlConditionGetLatest = $sqlLatestSell;
     } elseif (!empty($lLatestPriceQuote) && empty($latestSell)) {
         $sqlConditionGetLatest = $sqlLatestPriceQuote;
+    } else {
+        return response()->json([]);
     }
     $arrayLeftJoinLatestCondition = [
         DB::raw('(' . $sqlConditionGetLatest . ') as tbNewOrder'),
