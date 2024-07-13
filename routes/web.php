@@ -19,15 +19,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     //
-    $contact_id = 700;
-    if (!is_numeric($contact_id) || is_string($contact_id)) {
-        throw new Exception("Lỗi !");
-    }
-    $sqlLatestPriceQuote = 'SELECT * FROM bills WHERE contact_id = ' . $contact_id . ' AND type = "price_quote" ORDER BY created_at DESC LIMIT 1';
-    $sqlLatestSell = 'SELECT * FROM bills WHERE contact_id = ' . $contact_id . ' AND type = "sell" AND status = "approve" ORDER BY created_at DESC LIMIT 1';
+    $contact_id = '700';
 
-    $lLatestPriceQuote = DB::select($sqlLatestPriceQuote);
-    $latestSell = DB::select($sqlLatestSell);
+    $sqlLatestPriceQuote = 'SELECT * FROM bills WHERE contact_id = ? AND type = "price_quote" ORDER BY created_at DESC LIMIT 1';
+    $sqlLatestSell = 'SELECT * FROM bills WHERE contact_id = ? AND type = "sell" AND status = "approve" ORDER BY created_at DESC LIMIT 1';
+
+    $lLatestPriceQuote = DB::select($sqlLatestPriceQuote, [$contact_id]);
+    $latestSell = DB::select($sqlLatestSell, [$contact_id]);
     $sqlConditionGetLatest = '';
     if (!empty($lLatestPriceQuote) && !empty($latestSell)) {
         $latestPriceQuoteCreatedAt = $lLatestPriceQuote[0]->created_at;
@@ -53,7 +51,7 @@ Route::get('/', function () {
         $join->on('bill_items.product_id', '=', 'products.id');
     })->leftJoin(
         ...$arrayLeftJoinLatestCondition
-    )
+    )->setBindings([$contact_id])
         ->whereNotNull('tbNewOrder.id');
 
     $data = $query->get();

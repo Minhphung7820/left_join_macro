@@ -2651,12 +2651,12 @@ class ProductRepository extends BasicEntity implements RepositoryInterface
           return [];
         }
         //
-        $sqlLatestPriceQuote = 'SELECT * FROM transactions WHERE business_id = ' . $business_id . '  AND contact_id = ' . $request['contact_id'] . ' AND type = "price_quote" ORDER BY created_at DESC LIMIT 1';
-        $sqlLatestSell = 'SELECT * FROM transactions WHERE business_id = ' . $business_id . '  AND contact_id = ' . $request['contact_id'] . ' AND type = "sell" AND status = "approve" ORDER BY created_at DESC LIMIT 1';
+        $sqlLatestPriceQuote = 'SELECT * FROM transactions WHERE business_id = ?  AND contact_id = ? AND type = "price_quote" ORDER BY created_at DESC LIMIT 1';
+        $sqlLatestSell = 'SELECT * FROM transactions WHERE business_id = ?  AND contact_id = ? AND type = "sell" AND status = "approve" ORDER BY created_at DESC LIMIT 1';
         //
 
-        $lLatestPriceQuote = DB::select($sqlLatestPriceQuote);
-        $latestSell = DB::select($sqlLatestSell);
+        $lLatestPriceQuote = DB::select($sqlLatestPriceQuote, [$business_id, $request['contact_id']]);
+        $latestSell = DB::select($sqlLatestSell, [$business_id, $request['contact_id']]);
         $sqlConditionGetLatest = '';
         if (!empty($lLatestPriceQuote) && !empty($latestSell)) {
           $latestPriceQuoteCreatedAt = $lLatestPriceQuote[0]->created_at;
@@ -2686,7 +2686,8 @@ class ProductRepository extends BasicEntity implements RepositoryInterface
 
         $query->leftJoin(
           ...$arrayLeftJoinLatestCondition
-        );
+        )->setBindings([$business_id, $request['contact_id']])
+          ->whereNotNull('transactions.id');
 
         $query->leftJoin('stocks', function ($join) {
           $join->on('stocks.id', '=', 'stock_products.stock_id');
