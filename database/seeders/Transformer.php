@@ -172,15 +172,15 @@ class SellLineTransformer extends ProductRepository
                     $unit_price_inc_tax_variant =  $getProductInQuotationByVariant->unit_price_inc_tax;
                     $unit_price_variant = $getProductInQuotationByVariant->unit_price;
                   } else {
-                    $firstDefault = $this->getListedPrice(
+                    $firstDefaultByVariant = $this->getListedPrice(
                       $itemAppendVariant['product_id'],
                       $itemAppendVariant['stock_id'],
                       true,
                       $itemAppendVariant['attribute_first_id']
                     );
-                    if ($firstDefault) {
-                      $unit_price_inc_tax_variant = @$firstDefault['unit_price_inc_tax'];
-                      $unit_price_variant = @$firstDefault['unit_price'];
+                    if ($firstDefaultByVariant) {
+                      $unit_price_inc_tax_variant = @$firstDefaultByVariant['unit_price_inc_tax'];
+                      $unit_price_variant = @$firstDefaultByVariant['unit_price'];
                     }
                   }
                 }
