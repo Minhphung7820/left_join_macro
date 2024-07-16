@@ -7,6 +7,19 @@ use Illuminate\Support\Facades\DB;
 
 class SellLineTransformer extends ProductRepository
 {
+
+  private function getInputToGetBySell($transaction)
+  {
+    return [
+      'contact_id' => $transaction->contact->id,
+      'is_append_variant' => 1,
+      'is_stock_default' => 1,
+      'status' => '!all',
+      'type' => $transaction->type === 'price_quote' ? 'price-quote' : 'sell',
+      'get_in_transform' => 1
+    ];
+  }
+
   public function transform($transaction)
   {
     $transaction->sell_lines->map(function ($item) use ($transaction) {
@@ -30,18 +43,11 @@ class SellLineTransformer extends ProductRepository
             $itemSub->unit_price = $item->unit_price;
           } else {
             if ($transaction->contact) {
-              $objectRequestByQuotePrice = [
-                'contact_id' => $transaction->contact->id,
-                'is_append_variant' => 1,
-                'is_stock_default' => 1,
-                'status' => '!all',
-                'type' => $transaction->type === 'price_quote' ? 'price-quote' : 'sell',
-                'get_in_transform' => 1
-              ];
+
 
               $dataByQuotePrice = $this->getBySell(
                 request()->header('business-id'),
-                $objectRequestByQuotePrice
+                $this->getInputToGetBySell($transaction)
               );
               $getProductInQuotation = null;
               if (!empty($dataByQuotePrice)) {
@@ -56,19 +62,12 @@ class SellLineTransformer extends ProductRepository
               $maxIdTransactionFind = null;
               //
               if ($getProductInQuotation) {
-                $maxIdQuotationPriceQuote = DB::table('transactions')
-                  ->where('contact_id', $transaction->contact->id)
-                  ->where('type', 'price_quote')
-                  ->max('id');
+                $maxIdQuotationPriceQuote = $this->getIdMaxPriceQuoteOrder($transaction);
                 if ($transaction->type == 'price_quote') {
                   $maxIdTransactionFind = $maxIdQuotationPriceQuote;
                 }
                 if ($transaction->type == 'sell') {
-                  $maxIdQuotationSell = DB::table('transactions')
-                    ->where('contact_id', $transaction->contact->id)
-                    ->where('type', 'sell')
-                    ->where('status', 'approve')
-                    ->max('id');
+                  $maxIdQuotationSell = $this->getIdMaxSellOrder($transaction);
                   if ($maxIdQuotationPriceQuote >  $maxIdQuotationSell) {
                     $maxIdTransactionFind = $maxIdQuotationPriceQuote;
                   }
@@ -134,22 +133,13 @@ class SellLineTransformer extends ProductRepository
               $itemAppendVariant['unit_price_inc_tax'] = $item->unit_price_inc_tax;
             } else {
               if ($transaction->contact) {
-                $objectRequestByQuotePrice = [
-                  'contact_id' => $transaction->contact->id,
-                  'is_append_variant' => 1,
-                  'is_stock_default' => 1,
-                  'status' => '!all',
-                  'type' => $transaction->type === 'price_quote' ? 'price-quote' : 'sell',
-                  'get_in_transform' => 1
-                ];
-
                 $dataByQuotePrice = $this->getBySell(
                   request()->header('business-id'),
-                  $objectRequestByQuotePrice
+                  $this->getInputToGetBySell($transaction)
                 );
-                $getProductInQuotation = null;
+                $getProductInQuotationByVariant = null;
                 if (!empty($dataByQuotePrice)) {
-                  $getProductInQuotation = $dataByQuotePrice
+                  $getProductInQuotationByVariant = $dataByQuotePrice
                     ->where('product_id', $itemAppendVariant['product_id'])
                     ->where('stock_id', $itemAppendVariant['stock_id'])
                     ->where('attribute_first_id', $itemAppendVariant['attribute_first_id'])
@@ -160,20 +150,13 @@ class SellLineTransformer extends ProductRepository
                 $unit_price_variant = 0;
                 $maxIdTransactionFindForVariant = null;
                 //
-                if ($getProductInQuotation) {
-                  $maxIdQuotationPriceQuote = DB::table('transactions')
-                    ->where('contact_id', $transaction->contact->id)
-                    ->where('type', 'price_quote')
-                    ->max('id');
+                if ($getProductInQuotationByVariant) {
+                  $maxIdQuotationPriceQuote = $this->getIdMaxPriceQuoteOrder($transaction);
                   if ($transaction->type == 'price_quote') {
                     $maxIdTransactionFindForVariant = $maxIdQuotationPriceQuote;
                   }
                   if ($transaction->type == 'sell') {
-                    $maxIdQuotationSell = DB::table('transactions')
-                      ->where('contact_id', $transaction->contact->id)
-                      ->where('type', 'sell')
-                      ->where('status', 'approve')
-                      ->max('id');
+                    $maxIdQuotationSell = $this->getIdMaxSellOrder($transaction);
                     if ($maxIdQuotationPriceQuote >  $maxIdQuotationSell) {
                       $maxIdTransactionFindForVariant = $maxIdQuotationPriceQuote;
                     }
@@ -181,13 +164,13 @@ class SellLineTransformer extends ProductRepository
                       $maxIdTransactionFindForVariant = $maxIdQuotationSell;
                     }
                   }
-                  if ((!is_null($maxIdTransactionFindForVariant)) && ($maxIdTransactionFindForVariant == $getProductInQuotation->transaction_id)) {
+                  if ((!is_null($maxIdTransactionFindForVariant)) && ($maxIdTransactionFindForVariant == $getProductInQuotationByVariant->transaction_id)) {
                     $latestQuotationVariant = true;
                   }
 
                   if ($latestQuotationVariant) {
-                    $unit_price_inc_tax_variant =  $getProductInQuotation->unit_price_inc_tax;
-                    $unit_price_variant = $getProductInQuotation->unit_price;
+                    $unit_price_inc_tax_variant =  $getProductInQuotationByVariant->unit_price_inc_tax;
+                    $unit_price_variant = $getProductInQuotationByVariant->unit_price;
                   } else {
                     $firstDefault = $this->getListedPrice(
                       $itemAppendVariant['product_id'],
@@ -214,6 +197,23 @@ class SellLineTransformer extends ProductRepository
     });
 
     return $transaction;
+  }
+
+  private function getIdMaxPriceQuoteOrder($transaction)
+  {
+    return DB::table('transactions')
+      ->where('contact_id', $transaction->contact->id)
+      ->where('type', 'price_quote')
+      ->max('id');
+  }
+
+  private function getIdMaxSellOrder($transaction)
+  {
+    return DB::table('transactions')
+      ->where('contact_id', $transaction->contact->id)
+      ->where('type', 'sell')
+      ->where('status', 'approve')
+      ->max('id');
   }
 
   private function getListedPrice($product_id, $stock_id, $isVariable = false, $attribute_first_id = null)
